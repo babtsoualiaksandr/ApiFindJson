@@ -96,7 +96,7 @@ namespace ApiFindJson.Controllers
                 // Perform the required action on each file here. 
                 // Modify this block to perform your required task. 
                 foreach (string file in files)
-                {
+                                {
                     try
                     {
                         // Perform whatever action is required in your scenario. 
@@ -104,20 +104,30 @@ namespace ApiFindJson.Controllers
                         if (fi.Extension == ".json")
                         {
                             Console.WriteLine("****************{0}: {1}, {2}", fi.Name, fi.Length, fi.CreationTime);
-                            result_Data = new Result_Data() { Path = fi.DirectoryName, Result = file };
-                            results.Add(result_Data);
-                            FileStream fs = new FileStream(file, FileMode.Open);
-                            Console.WriteLine(fs);
+                            FileStream fs = new FileStream(file, FileMode.Open);                            
                             StreamReader sr = new StreamReader(fs);
-                            Console.WriteLine(sr.ReadToEnd());
-                            JObject jo = JObject.Parse(sr.ReadToEnd().ToString());
+                            JObject jo = (JObject)JToken.ReadFrom(new JsonTextReader(@sr));
                             Console.WriteLine(jo);
-                            //List<Object> list_Json = JsonConvert.DeserializeObject(sr.ReadToEnd());
-                            //foreach (var item in jo)
-                            //{
-                            //    Console.WriteLine(item.ToString());
-                            //} 
-                            amount++;
+                            foreach (var item in root.Contents)
+                            {
+                                var value = jo.SelectToken(item.Name);
+                                Console.WriteLine("item.Name {0}",item.Name);
+                                Console.WriteLine("value  {0}", value);
+                                string str = ".." + item.Name;
+                                var classNameTokens = jo.SelectTokens(str);
+                                var values = classNameTokens.Select(x => (x as JValue).Value);
+                                foreach (var i in values)
+                                {
+                                    Console.WriteLine("name {0} value {1}",str, i);
+                                    if (item.Content == i.ToString())
+                                    {
+                                        result_Data = new Result_Data() { Path = file, Field = str, Value = i.ToString() };
+                                        results.Add(result_Data);
+                                        amount++;
+                                    }
+                                }
+                            }
+                            fs.Close();
                         }
                     }
                     catch (System.IO.FileNotFoundException e)
