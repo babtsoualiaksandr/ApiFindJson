@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading.Tasks;
 using ApiFindJson.Model;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
@@ -27,7 +28,7 @@ namespace ApiFindJson.Controllers
 
         // POST api/Find
         [HttpPost]
-        public JsonResult Post([FromBody] Search search)
+        public async Task <ActionResult> Post([FromBody] Search search)
         {
             // Data structure to hold names of subfolders to be 
             // examined for files. 
@@ -43,7 +44,8 @@ namespace ApiFindJson.Controllers
             List<Result_Data> results = new List<Result_Data>();
             List<string> listFile = new List<string>();
 
-            int amount = 0;
+            int amountFind = 0;
+            int countFile = 0;
             dirs.Push(search.Root);
 
             while (dirs.Count > 0)
@@ -83,18 +85,19 @@ namespace ApiFindJson.Controllers
                 catch (UnauthorizedAccessException e)
                 {
 
-                    //Console.WriteLine(e.Message);
+                    Console.WriteLine(e.Message);
                     continue;
                 }
 
                 catch (System.IO.DirectoryNotFoundException e)
                 {
-                    //Console.WriteLine(e.Message);
+                    Console.WriteLine(e.Message);
                     continue;
                 }
                 // Perform the required action on each file here. 
                 // Modify this block to perform your required task. 
-                foreach (string file in files)
+               //foreach (string file in files)  
+               Parallel.ForEach(files, (file)=>              
                 {
                     try
                     {
@@ -123,26 +126,27 @@ namespace ApiFindJson.Controllers
                             try
                             {
                                 JObject jo = JObject.Parse(json);
+                                
                                 foreach (var searchContent in search.Contents)
                                 {
                                     string s = "$.." + searchContent.NameField;
                                     IEnumerable<JToken> findFilds = jo.SelectTokens(s);
 
-                                    foreach (var contentField in findFilds)
+                                    Parallel.ForEach(findFilds, (contentField) =>
                                     {
                                         if (searchContent.ContentField == contentField.ToString())
                                         {
                                             result_Data = new Result_Data() { Path = file, Field = searchContent.NameField, Value = contentField.ToString() };
                                             results.Add(result_Data);
-                                            amount++;
+                                            amountFind++;
                                         }
-                                    }
+                                    });
                                 }
                             }
                             catch (Exception e)
                             {
                                // Console.WriteLine(e.Message);
-                                continue;
+                                //continue;
                             }
 
                             try
@@ -153,15 +157,16 @@ namespace ApiFindJson.Controllers
                                     string s = "$.." + searchContent.NameField;
                                     IEnumerable<JToken> findFilds = jj.SelectTokens(s);
 
-                                    foreach (var contentField in findFilds)
+                                    //foreach (var contentField in findFilds)
+                                    Parallel.ForEach(findFilds, (contentField) =>
                                     {
                                         if (searchContent.ContentField == contentField.ToString())
                                         {
                                             result_Data = new Result_Data() { Path = file, Field = searchContent.NameField, Value = contentField.ToString() };
                                             results.Add(result_Data);
-                                            amount++;
+                                            amountFind++;
                                         }
-                                    }
+                                    });
                                 }
 
 
@@ -169,7 +174,7 @@ namespace ApiFindJson.Controllers
                             catch (Exception e)
                             {
                                 //Console.WriteLine(e.Message);
-                                continue;
+                               // continue;
                             }
 
 
@@ -248,18 +253,24 @@ namespace ApiFindJson.Controllers
                         // or thread since the call to TraverseTree() 
                         // then just continue. 
                         Console.WriteLine(e.Message);
-                        continue;
+                        //continue;
                     }
-                }
+                });
 
                 // Push the subdirectories onto the stack for traversal. 
                 // This could also be done before handing the files. 
                 foreach (string str in subDirs)
                     dirs.Push(str);
-                result_List = new Result_List() { Amount = amount, Results = results };
+                result_List = new Result_List() { Amount = amountFind, Results = results };
             }
             return new JsonResult(result_List);
         }
+
+
+
+
+
+
 
         // PUT api/Find/5
         [HttpPut("{id}")]
