@@ -11800,11 +11800,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "/home/sasha/wargamming/ApiFindJson/ApiFindJson.csproj",
+      "projectUniqueName": "/home/sasha/wargamming/ApiFindJson_1122018/ApiFindJson.csproj",
       "projectName": "ApiFindJson",
-      "projectPath": "/home/sasha/wargamming/ApiFindJson/ApiFindJson.csproj",
+      "projectPath": "/home/sasha/wargamming/ApiFindJson_1122018/ApiFindJson.csproj",
       "packagesPath": "/home/sasha/.nuget/packages/",
-      "outputPath": "/home/sasha/wargamming/ApiFindJson/obj/",
+      "outputPath": "/home/sasha/wargamming/ApiFindJson_1122018/obj/",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "/usr/share/dotnet/sdk/NuGetFallbackFolder"

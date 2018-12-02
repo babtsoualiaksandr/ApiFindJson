@@ -8,14 +8,14 @@ namespace ApiFindJson.Model
     public class Search
     {
         public string Root { get; set; }
-        public List<Search_Content> Contents { get; set; }
+        public List<Content> Contents { get; set; }
 
     }
 
-        public class Search_Content
+        public class Content
     {
-        public string Name { get; set; }
-        public string Content { get; set; }
+        public string NameField { get; set; }
+        public string ContentField { get; set; }
 
     }
 

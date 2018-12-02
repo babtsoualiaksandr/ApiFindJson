@@ -1,11 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Threading.Tasks;
 using ApiFindJson.Model;
 using Microsoft.AspNetCore.Mvc;
-using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 namespace ApiFindJson.Controllers
@@ -18,7 +15,7 @@ namespace ApiFindJson.Controllers
         [HttpGet]
         public ActionResult<IEnumerable<string>> Get()
         {
-            return new string[] { "Masha", "Sasha" };
+            return new string[] { "Hello comrades", "!!!!" };
         }
 
         // GET api/Find/5
@@ -30,13 +27,13 @@ namespace ApiFindJson.Controllers
 
         // POST api/Find
         [HttpPost]
-        public JsonResult Post([FromBody] Search root)
+        public JsonResult Post([FromBody] Search search)
         {
             // Data structure to hold names of subfolders to be 
             // examined for files. 
             Stack<string> dirs = new Stack<string>(20);
 
-            if (!System.IO.Directory.Exists(root.Root))
+            if (!System.IO.Directory.Exists(search.Root))
             {
                 throw new ArgumentException();
             }
@@ -44,8 +41,10 @@ namespace ApiFindJson.Controllers
             Result_Data result_Data;
             Result_List result_List = new Result_List();
             List<Result_Data> results = new List<Result_Data>();
+            List<string> listFile = new List<string>();
+
             int amount = 0;
-            dirs.Push(root.Root);
+            dirs.Push(search.Root);
 
             while (dirs.Count > 0)
             {
@@ -84,50 +83,163 @@ namespace ApiFindJson.Controllers
                 catch (UnauthorizedAccessException e)
                 {
 
-                    Console.WriteLine(e.Message);
+                    //Console.WriteLine(e.Message);
                     continue;
                 }
 
                 catch (System.IO.DirectoryNotFoundException e)
                 {
-                    Console.WriteLine(e.Message);
+                    //Console.WriteLine(e.Message);
                     continue;
                 }
                 // Perform the required action on each file here. 
                 // Modify this block to perform your required task. 
                 foreach (string file in files)
-                                {
+                {
                     try
                     {
                         // Perform whatever action is required in your scenario. 
                         System.IO.FileInfo fi = new System.IO.FileInfo(file);
-                        if (fi.Extension == ".json")
+                        if (fi.Extension == ".json") 
                         {
-                            Console.WriteLine("****************{0}: {1}, {2}", fi.Name, fi.Length, fi.CreationTime);
-                            FileStream fs = new FileStream(file, FileMode.Open);                            
+
+                            //Console.WriteLine("****************{0}: {1}, {2} файл № {3}", fi.Name, fi.Length, fi.CreationTimeUtc, amount);
+                            FileStream fs = new FileStream(file, FileMode.Open);
                             StreamReader sr = new StreamReader(fs);
-                            JObject jo = (JObject)JToken.ReadFrom(new JsonTextReader(@sr));
-                            Console.WriteLine(jo);
-                            foreach (var item in root.Contents)
+                            //Newtonsoft.Json.Linq.JObject obj = Newtonsoft.Json.Linq.JObject.Parse();
+                            
+                            string json = sr.ReadToEnd();
+                            ////Console.WriteLine("***********json************");
+                            ////Console.WriteLine(json);
+                            //foreach (var searchContentInFile in search.Contents)
+                            //{
+                            //    if (json.Contains(searchContentInFile.ContentField))
+                            //    {
+                            //        Console.WriteLine(fi.FullName);
+                            //        listFile.Add(file);
+                            //    }
+                            //}
+                            
+                            try
                             {
-                                var value = jo.SelectToken(item.Name);
-                                Console.WriteLine("item.Name {0}",item.Name);
-                                Console.WriteLine("value  {0}", value);
-                                string str = ".." + item.Name;
-                                var classNameTokens = jo.SelectTokens(str);
-                                var values = classNameTokens.Select(x => (x as JValue).Value);
-                                foreach (var i in values)
+                                JObject jo = JObject.Parse(json);
+                                foreach (var searchContent in search.Contents)
                                 {
-                                    Console.WriteLine("name {0} value {1}",str, i);
-                                    if (item.Content == i.ToString())
+                                    string s = "$.." + searchContent.NameField;
+                                    IEnumerable<JToken> findFilds = jo.SelectTokens(s);
+
+                                    foreach (var contentField in findFilds)
                                     {
-                                        result_Data = new Result_Data() { Path = file, Field = str, Value = i.ToString() };
+                                        if (searchContent.ContentField == contentField.ToString())
+                                        {
+                                            result_Data = new Result_Data() { Path = file, Field = searchContent.NameField, Value = contentField.ToString() };
+                                            results.Add(result_Data);
+                                            amount++;
+                                        }
+                                    }
+                                }
+                            }
+                            catch (Exception e)
+                            {
+                               // Console.WriteLine(e.Message);
+                                continue;
+                            }
+
+                            try
+                            {
+                                JArray jj = JArray.Parse(json);
+                                foreach (var searchContent in search.Contents)
+                                {
+                                    string s = "$.." + searchContent.NameField;
+                                    IEnumerable<JToken> findFilds = jj.SelectTokens(s);
+
+                                    foreach (var contentField in findFilds)
+                                    {
+                                        if (searchContent.ContentField == contentField.ToString())
+                                        {
+                                            result_Data = new Result_Data() { Path = file, Field = searchContent.NameField, Value = contentField.ToString() };
+                                            results.Add(result_Data);
+                                            amount++;
+                                        }
+                                    }
+                                }
+
+
+                            }
+                            catch (Exception e)
+                            {
+                                //Console.WriteLine(e.Message);
+                                continue;
+                            }
+
+
+
+
+
+                            //JsonTextReader jsonTextReader = new JsonTextReader(@sr)
+                            //{
+                            //    MaxDepth = 3
+                            //};
+
+                            //while (jsonTextReader.Read())
+                            //{
+                            //    if (jsonTextReader.Value != null)
+                            //    {
+                            //       // Console.WriteLine("Token: {0}, Value: {1} Depth {2}", jsonTextReader.TokenType, jsonTextReader.Value, jsonTextReader.Depth);
+                            //        foreach (var searchContent in search.Contents)
+                            //        {
+                            //            if (jsonTextReader.TokenType.ToString() == "PropertyName")
+                            //            {
+                            //                if (jsonTextReader.Value.ToString() == searchContent.NameField)
+                            //                {
+                            //                   // Console.Write("Field =  {0} ======>>>>>>> ", jsonTextReader.Value);
+                            //                    jsonTextReader.ReadAsString();
+                            //                    if (jsonTextReader.Value.ToString() == searchContent.ContentField)
+                            //                    {
+                            //                       // Console.WriteLine("Field Value =  {0}", jsonTextReader.Value);
+                            //                        // Console.WriteLine("Token: {0}, Value: {1} Depth {2}" , jsonTextReader.TokenType, jsonTextReader.Value, jsonTextReader.Depth);
+                            //                        result_Data = new Result_Data() { Path = file, Field = searchContent.NameField+ " Depth " + jsonTextReader.Depth, Value = jsonTextReader.Value.ToString() };
+                            //                        results.Add(result_Data);
+                            //                        amount++;
+                            //                    }
+                            //                }
+                            //            }
+                            //        }
+
+                            //    }
+                            //    else
+                            //    {
+                            //       // Console.WriteLine("Token: {0}", jsonTextReader.TokenType);
+                            //    }
+                            //}
+
+
+
+
+
+
+
+                            /* JObject jo = (JObject)JToken.ReadFrom(jsonTextReader);
+                            Console.WriteLine(jo);
+                            foreach (var searchContent in search.Contents)
+                            {
+                                Console.WriteLine("searchContent.NameField {0}",searchContent.NameField);
+                                string nameField = ".." + searchContent.NameField;
+                                var namesField = jo.SelectTokens(nameField);
+                                var contentFields = namesField.Select(x => (x as JValue).Value);
+                                foreach (var contentField in contentFields)
+                                {
+                                    Console.WriteLine("nameField {0} contentField {1}",nameField, contentField);
+                                    if (searchContent.ContentField == contentField.ToString())
+                                    {
+                                        result_Data = new Result_Data() { Path = file, Field = nameField, Value = contentField.ToString() };
                                         results.Add(result_Data);
                                         amount++;
                                     }
                                 }
-                            }
+                            } */
                             fs.Close();
+                           // Console.ReadKey();
                         }
                     }
                     catch (System.IO.FileNotFoundException e)
